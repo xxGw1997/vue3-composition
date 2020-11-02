@@ -1,30 +1,33 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Document</title>
 </head>
+
 <body>
   <div id="app"></div>
   <script src="/dist/vue.js"></script>
   <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
   <script>
-    const {reactive,effect,ref,computed,toRefs} = VueReactivity
+    const { reactive, effect, ref, computed, toRefs } = VueReactivity
 
-    console.log(reactive,effect,ref,computed)
+    // const state = reactive({ name: 'ywx', age: 23, address: 'hangzhou' })
 
-    const state = reactive({name:'ywx',age:23})
+    const state = reactive([1, 2, 3])
 
-    console.log(state)
-
-    effect(()=>{
-      app.innerHTML = state.name + '已经' + state.age + '了。'
+    effect(() => {
+      // app.innerHTML = state.name + '已经' + state.age + '了。'
+      app.innerHTML = state[2]
     })
 
     setTimeout(() => {
-      state.age = 24
+      // state.age = 24
+      state.length = 1
     }, 1000);
   </script>
 </body>
+
 </html>
