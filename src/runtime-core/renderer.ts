@@ -1,12 +1,15 @@
-export function createRenderer(options){
+import { createAppAPI } from "./apiCreateApp"
+
+export function createRenderer(options) {
+  return baseCreateRenderer(options)
+}
+
+function baseCreateRenderer(options) {
+  const render = (vnode, container) => {
+
+  }
+
   return {
-    createApp(rootComponent){
-      const app = {
-        mount(container){
-          
-        }
-      }
-      return app
-    }
+    createApp: createAppAPI(render)
   }
 }
