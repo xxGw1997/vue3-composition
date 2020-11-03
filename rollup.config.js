@@ -7,7 +7,8 @@ import path from 'path'
 export default {
   input:'src/index.ts',
   output:{
-    name:'VueReactivity', //window.VueReactivity
+    // name:'VueReactivity', //window.VueReactivity
+    name:'Vue',
     format:'umd',
     file:path.resolve('dist/vue.js'),
     sourcemap:true  //生成映射文件

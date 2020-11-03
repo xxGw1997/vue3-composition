@@ -10,6 +10,12 @@ function createGetter() {
       return res
     }
     //依赖收集
+    //在调用effect()时,会将effect中使用到的属性添加对应的effect方法
+    //个人理解的操作就是,收集每一个使用到该属性(比如name)的effect函数(比如将这个name属性赋值给页面上某个div中innerHTML的函数)给收集起来
+    //因为在这个函数中使用到了name属性,所以name属性变化时,需要重新执行该函数
+    //最后会生成一个map  {Object:{name:[effect1,effect2],age:[...]} 
+    //effect1操作比如就是把name属性赋值给页面上div1的内容中  
+    //effect2就是比如把name属性赋值给页面上div2的内容中
     track(target, key)
     console.log('数据get')
 

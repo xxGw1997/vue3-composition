@@ -1,7 +1,7 @@
 (function (global, factory) {
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
   typeof define === 'function' && define.amd ? define(['exports'], factory) :
-  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.VueReactivity = {}));
+  (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.Vue = {}));
 }(this, (function (exports) { 'use strict';
 
   function computed() {
@@ -17,6 +17,7 @@
 
   function effect(fn, options) {
       if (options === void 0) { options = {}; }
+      //options默认没有用,但是在写计算属性时会用上
       var effect = createReactiveEffect(fn, options);
       if (!options.lazy) {
           effect();
@@ -32,6 +33,7 @@
               try {
                   activeEffect = effect;
                   effectStack.push(activeEffect);
+                  //计算属性有返回值,所以需要return
                   return fn(); //需要执行的逻辑,内部会对依赖的数据进行取值get()操作,在取值时可以拿到activeEffects
               }
               finally {
@@ -108,6 +110,12 @@
               return res;
           }
           //依赖收集
+          //在调用effect()时,会将effect中使用到的属性添加对应的effect方法
+          //个人理解的操作就是,收集每一个使用到该属性(比如name)的effect函数(比如将这个name属性赋值给页面上某个div中innerHTML的函数)给收集起来
+          //因为在这个函数中使用到了name属性,所以name属性变化时,需要重新执行该函数
+          //最后会生成一个map  {Object:{name:[effect1,effect2],age:[...]} 
+          //effect1操作比如就是把name属性赋值给页面上div1的内容中  
+          //effect2就是比如把name属性赋值给页面上div2的内容中
           track(target, key);
           console.log('数据get');
           if (isObject(res)) { //取值是对象 再进行递归代理->懒递归
@@ -162,7 +170,80 @@
   function ref() {
   }
 
+  /*! *****************************************************************************
+  Copyright (c) Microsoft Corporation.
+
+  Permission to use, copy, modify, and/or distribute this software for any
+  purpose with or without fee is hereby granted.
+
+  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+  REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
+  AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+  INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+  LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+  OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+  PERFORMANCE OF THIS SOFTWARE.
+  ***************************************************************************** */
+
+  var __assign = function() {
+      __assign = Object.assign || function __assign(t) {
+          for (var s, i = 1, n = arguments.length; i < n; i++) {
+              s = arguments[i];
+              for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p)) t[p] = s[p];
+          }
+          return t;
+      };
+      return __assign.apply(this, arguments);
+  };
+
+  var nodeOps = {
+      createElement: function (type) {
+          return document.createElement(type);
+      },
+      setElementText: function (el, text) {
+          el.textContent = text;
+      },
+      insert: function (child, parent, anchor) {
+          if (anchor === void 0) { anchor = null; }
+          parent.insertBefore(child, anchor);
+      },
+      remove: function (child) {
+          var parent = child.parentNode;
+          if (parent)
+              parent.removeChild(child);
+      }
+  };
+
+  function createRenderer(options) {
+      return {
+          createApp: function (rootComponent) {
+              var app = {
+                  mount: function (container) {
+                  }
+              };
+              return app;
+          }
+      };
+  }
+
+  var renderOptions = __assign({}, nodeOps);
+  function ensureRenderer() {
+      return createRenderer();
+  }
+  function createApp(rootComponent) {
+      //1、根据组件创建一个渲染器
+      var app = ensureRenderer().createApp(rootComponent);
+      var mount = app.mount;
+      app.mount = function (container) {
+          //1、挂载时需要先将容器清空 再进行挂载
+          container.innerHTML = '';
+          mount(container);
+      };
+      return app;
+  }
+
   exports.computed = computed;
+  exports.createApp = createApp;
   exports.effect = effect;
   exports.reactive = reactive;
   exports.ref = ref;

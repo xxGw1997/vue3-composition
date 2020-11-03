@@ -1,6 +1,7 @@
 import { isArray, isInteger } from "../shared/index";
 
 export function effect(fn, options: any = {}) {  //effect => vue watcher
+  //options默认没有用,但是在写计算属性时会用上
   const effect = createReactiveEffect(fn, options)
   if (!options.lazy) {
     effect()
@@ -17,6 +18,7 @@ function createReactiveEffect(fn, options) {
       try {
         activeEffect = effect
         effectStack.push(activeEffect)
+        //计算属性有返回值,所以需要return
         return fn()  //需要执行的逻辑,内部会对依赖的数据进行取值get()操作,在取值时可以拿到activeEffects
       } finally {
         effectStack.pop()

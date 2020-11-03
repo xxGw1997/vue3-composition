@@ -9,24 +9,42 @@
 
 <body>
   <div id="app"></div>
-  <script src="/dist/vue.js"></script>
+  <!-- <script src="/dist/vue.js"></script> -->
   <!-- <script src="/node_modules/@vue/reactivity/dist/reactivity.global.js"></script> -->
+
+
+  <!-- <script src="/node_modules/vue/dist/vue.global.js"></script> -->
+  <script src="/dist/vue.js"></script>
   <script>
-    const { reactive, effect, ref, computed, toRefs } = VueReactivity
+    // const { reactive, effect, ref, computed, toRefs } = VueReactivity
 
     // const state = reactive({ name: 'ywx', age: 23, address: 'hangzhou' })
 
-    const state = reactive([1, 2, 3])
+    // const state = reactive([1, 2, 3])
 
-    effect(() => {
-      // app.innerHTML = state.name + '已经' + state.age + '了。'
-      app.innerHTML = state[2]
-    })
+    // effect(() => {
+    //   // app.innerHTML = state.name + '已经' + state.age + '了。'
+    //   app.innerHTML = state[2]
+    // })
 
-    setTimeout(() => {
-      // state.age = 24
-      state.length = 1
-    }, 1000);
+    // setTimeout(() => {
+    //   // state.age = 24
+    //   state.length = 1
+    // }, 1000);
+    let {createApp,reactive,h} = Vue
+    let App = {
+      setup(){
+        let state = reactive({name:'ywx',age:13})
+        return ()=>{  //render
+          return h('div',{style:{color:'red'}},state.name + ":"+state.age)
+        }
+      }
+    }
+
+    //组件时如何渲染的-初始化的过程
+    //vue3 runtime-core(核心) runtime-dom(针对浏览器平台 )
+    createApp(App).mount('#app')
+
   </script>
 </body>
 
