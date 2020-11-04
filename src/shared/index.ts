@@ -12,3 +12,5 @@ export const hasChanged = (value, oldValue) => value !== oldValue
 export const isString = (value) => typeof value == 'string'
 
 export const isFunction = value => typeof value == 'function'
+
+export * from './shapeFlags'

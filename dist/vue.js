@@ -14,6 +14,8 @@
   var hasOwnProperty = Object.prototype.hasOwnProperty;
   var hasOwn = function (val, key) { return hasOwnProperty.call(val, key); };
   var hasChanged = function (value, oldValue) { return value !== oldValue; };
+  var isString = function (value) { return typeof value == 'string'; };
+  var isFunction = function (value) { return typeof value == 'function'; };
 
   function effect(fn, options) {
       if (options === void 0) { options = {}; }
@@ -198,6 +200,8 @@
 
   var nodeOps = {
       createElement: function (type) {
+          console.log('123:', type);
+          // return document.createElement('div')
           return document.createElement(type);
       },
       setElementText: function (el, text) {
@@ -214,27 +218,238 @@
       }
   };
 
-  function createRenderer(options) {
-      return {
-          createApp: function (rootComponent) {
-              var app = {
-                  mount: function (container) {
-                  }
-              };
-              return app;
-          }
+  function createVnode(type, props, children) {
+      if (props === void 0) { props = {}; }
+      if (children === void 0) { children = null; }
+      //type 可能是对象 也有可能是字符串
+      var shapeFlag = isString(type) ? 1 /* ELEMENT */ : isObject(type) ? 4 /* STATEFUL_COMPONENT */ : 0;
+      console.log("createvnode:", type);
+      var vnode = {
+          type: type,
+          props: props,
+          children: children,
+          component: null,
+          el: null,
+          key: props.key,
+          shapeFlag: shapeFlag //用来标识当前虚拟节点的类型  元素、组件....
+      };
+      if (isArray(children)) {
+          //或操作不仅可以表示当前节点的类型,还能表示儿子组件的类型
+          // 00000001 元素
+          // 00010000 儿子组件
+          // 00010001 代表两者都有
+          vnode.shapeFlag |= 16 /* ARRAY_CHILDREN */;
+      }
+      else {
+          vnode.shapeFlag |= 8 /* TEXT_CHILDREN */;
+      }
+      return vnode;
+  }
+
+  function createAppAPI(render) {
+      return function (rootComponent) {
+          var app = {
+              mount: function (container) {
+                  var vnode = createVnode(rootComponent);
+                  console.log('444:', rootComponent);
+                  render(vnode, container);
+              }
+          };
+          return app;
       };
   }
 
-  var renderOptions = __assign({}, nodeOps);
+  function createComponentInstance(vnode) {
+      var instance = {
+          type: vnode.type,
+          props: {},
+          vnode: vnode,
+          isMounted: false,
+          setupState: null
+      };
+      return instance;
+  }
+  var setupComponent = function (instance) {
+      //1、源码中会对属性初始化
+      //2、会对插槽进行初始化
+      //3、调用setup方法
+      setupStatefulComponent(instance);
+  };
+  function setupStatefulComponent(instance) {
+      var Component = instance.type; //组件的虚拟节点
+      var setup = Component.setup;
+      if (setup) {
+          var setUpResult = setup(); //获取setup返回的值
+          //判断返回值类型
+          handleSetupResult(instance, setUpResult);
+      }
+  }
+  function handleSetupResult(instance, setUpResult) {
+      if (isFunction(setUpResult)) {
+          instance.render = setUpResult;
+      }
+      else {
+          instance.setupState = setUpResult;
+      }
+      finishComponentSetup(instance);
+  }
+  function finishComponentSetup(instance) {
+      var Component = instance.type;
+      if (Component.render) {
+          instance.render = Component.render;
+      }
+      else if (!instance.render) ;
+  }
+
+  function createRenderer(options) {
+      return baseCreateRenderer(options);
+  }
+  function baseCreateRenderer(options) {
+      var hostCreateElement = options.createElement, hostPatchProp = options.patchProp, hostSetElementText = options.setElementText, hostInsert = options.insert, hostRemove = options.remove;
+      var mountElement = function (vnode, container) {
+          //n2是虚拟节点,container是容器
+          var shapeFlag = vnode.shapeFlag, props = vnode.props;
+          console.log('aaa');
+          var el = vnode.el = hostCreateElement(vnode.type);
+          console.log('bbb');
+          //创建儿子节点
+          if (shapeFlag & 1 /* ELEMENT */) {
+              hostSetElementText(el, vnode.children);
+          }
+          else if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+              mountChildren(vnode.children, el);
+          }
+          if (props) {
+              for (var key in props) {
+                  hostPatchProp(el, key, null, props[key]);
+              }
+          }
+          hostInsert(el, container);
+      };
+      var mountChildren = function (children, container) {
+          for (var i = 0; i < children.length; i++) {
+              patch(null, children[i], container);
+          }
+      };
+      var mountComponent = function (initialVnode, container) {
+          //组件挂载  1、创建组件的实例  2、初始化组件(找到组件的render方法)  3、执行render
+          //组件的实例要记住组件的状态
+          var instance = initialVnode.component = createComponentInstance(initialVnode);
+          setupComponent(instance);
+          // console.log(instance.render)
+          //调用render方法,如果render方法中数据变了 会重新渲染
+          setupRenderEffect(instance, initialVnode, container); //给组件创建一个effect,用于渲染
+      };
+      var setupRenderEffect = function (instance, initialVnode, container) {
+          //组件的effect
+          effect(function () {
+              if (!instance.isMounted) {
+                  //渲染组件中的内容
+                  var subTree = instance.subTree = instance.render(); //组件对应渲染的结果
+                  patch(null, subTree, container);
+                  instance.isMounted = true;
+              }
+              else {
+                  //更新逻辑
+                  var prev = instance.subTree; //上一次的渲染结果
+                  var next = instance.render();
+                  console.log(prev, next);
+              }
+          });
+      };
+      var processComponent = function (n1, n2, container) {
+          if (n1 == null) {
+              mountComponent(n2, container);
+          }
+      };
+      var processElement = function (n1, n2, container) {
+          if (n1 == null) {
+              mountElement(n2, container);
+          }
+      };
+      var patch = function (n1, n2, container) {
+          var shapeFlag = n2.shapeFlag;
+          console.log(shapeFlag & 4 /* STATEFUL_COMPONENT */);
+          if (shapeFlag & 1 /* ELEMENT */) {
+              processElement(n1, n2, container);
+          }
+          else if (shapeFlag & 4 /* STATEFUL_COMPONENT */) {
+              processComponent(n1, n2, container);
+          }
+      };
+      var render = function (vnode, container) {
+          patch(null, vnode, container);
+      };
+      return {
+          createApp: createAppAPI(render)
+      };
+  }
+
+  function h(type, props, children) {
+      if (props === void 0) { props = {}; }
+      if (children === void 0) { children = null; }
+      return createVnode(type, props, children);
+  }
+
+  function patchClass(el, value) {
+      if (value == null) {
+          value = '';
+      }
+      el.className = value;
+  }
+  function patchStyle(el, prev, next) {
+      //{color:red}  {background:red}
+      var style = el.style;
+      if (!next) {
+          el.removeAttribute('style');
+      }
+      else {
+          for (var key in next) {
+              style[key] = next[key];
+          }
+          if (prev) {
+              for (var key in prev) {
+                  if (next[key] == null) {
+                      style[key] = '';
+                  }
+              }
+          }
+      }
+  }
+  function patchAttr(el, key, value) {
+      if (value == null) {
+          el.removeAttribute(key);
+      }
+      else {
+          el.setAttribute(key, value);
+      }
+  }
+  function patchProp(el, key, prevValue, nextValue) {
+      switch (key) {
+          case 'class':
+              patchClass(el, nextValue);
+              break;
+          case 'style':
+              //{color:'red'}
+              patchStyle(el, prevValue, nextValue);
+              break;
+          default:
+              patchAttr(el, key, nextValue);
+              break;
+      }
+  }
+
+  var renderOptions = __assign(__assign({}, nodeOps), { patchProp: patchProp });
   function ensureRenderer() {
-      return createRenderer();
+      return createRenderer(renderOptions);
   }
   function createApp(rootComponent) {
       //1、根据组件创建一个渲染器
       var app = ensureRenderer().createApp(rootComponent);
       var mount = app.mount;
       app.mount = function (container) {
+          console.log(container);
+          container = document.querySelector(container);
           //1、挂载时需要先将容器清空 再进行挂载
           container.innerHTML = '';
           mount(container);
@@ -244,7 +459,9 @@
 
   exports.computed = computed;
   exports.createApp = createApp;
+  exports.createRenderer = createRenderer;
   exports.effect = effect;
+  exports.h = h;
   exports.reactive = reactive;
   exports.ref = ref;
 

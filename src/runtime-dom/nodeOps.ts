@@ -1,5 +1,7 @@
 export const nodeOps = {
   createElement(type){
+    console.log('123:',type)
+    // return document.createElement('div')
     return document.createElement(type)
   },
   setElementText(el,text){

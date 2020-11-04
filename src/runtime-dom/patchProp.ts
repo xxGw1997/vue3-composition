@@ -12,7 +12,7 @@ function patchStyle(el, prev, next) {
   if (!next) {
     el.removeAttribute('style')
   } else {
-    for (let key in prev) {
+    for (let key in next) {
       style[key] = next[key]
     }
     if (prev) {
@@ -22,6 +22,14 @@ function patchStyle(el, prev, next) {
         }
       }
     }
+  }
+}
+
+function patchAttr(el,key,value){
+  if(value==null){
+    el.removeAttribute(key)
+  }else{
+    el.setAttribute(key,value)
   }
 }
 
@@ -35,6 +43,7 @@ export function patchProp(el, key, prevValue, nextValue) {
       patchStyle(el, prevValue, nextValue)
       break;
     default:
+      patchAttr(el,key,nextValue)
       break;
   }
 }
