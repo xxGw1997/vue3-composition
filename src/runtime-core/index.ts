@@ -1,3 +1,3 @@
-export {createRenderer} from "./renderer"
+export { createRenderer } from "./renderer"
 
-export {h} from "./h"
+export { h } from "./h"

@@ -1,17 +1,17 @@
 export const nodeOps = {
-  createElement(type){
-    console.log('123:',type)
+  createElement(type) {
+    console.log('123:', type)
     // return document.createElement('div')
     return document.createElement(type)
   },
-  setElementText(el,text){
+  setElementText(el, text) {
     el.textContent = text
   },
-  insert(child,parent,anchor=null){
-    parent.insertBefore(child,anchor)
+  insert(child, parent, anchor = null) {
+    parent.insertBefore(child, anchor)
   },
-  remove(child){
+  remove(child) {
     const parent = child.parentNode
-    if(parent) parent.removeChild(child)
+    if (parent) parent.removeChild(child)
   }
 }

@@ -31,12 +31,12 @@
     //   // state.age = 24
     //   state.length = 1
     // }, 1000);
-    let {createApp,reactive,h} = Vue
+    let { createApp, reactive, h } = Vue
     let App = {
-      setup(){
-        let state = reactive({name:'ywx',age:13})
-        return ()=>{  //render
-          return h('div',{style:{color:'red'}},state.name + ":"+state.age)
+      setup() {
+        let state = reactive({ name: 'ywx', age: 13 })
+        return () => {  //render
+          return h('div', { style: { color: 'red' } }, state.name + ":" + state.age)
         }
       }
     }

@@ -25,11 +25,11 @@ function patchStyle(el, prev, next) {
   }
 }
 
-function patchAttr(el,key,value){
-  if(value==null){
+function patchAttr(el, key, value) {
+  if (value == null) {
     el.removeAttribute(key)
-  }else{
-    el.setAttribute(key,value)
+  } else {
+    el.setAttribute(key, value)
   }
 }
 
@@ -43,7 +43,7 @@ export function patchProp(el, key, prevValue, nextValue) {
       patchStyle(el, prevValue, nextValue)
       break;
     default:
-      patchAttr(el,key,nextValue)
+      patchAttr(el, key, nextValue)
       break;
   }
 }
