@@ -20,9 +20,7 @@ function baseCreateRenderer(options) {
   const mountElement = (vnode, container) => {
     //n2是虚拟节点,container是容器
     let { shapeFlag, props } = vnode
-    console.log('aaa')
     let el = vnode.el = hostCreateElement(vnode.type)
-    console.log('bbb')
     //创建儿子节点
     if (shapeFlag & ShapeFlags.ELEMENT) {
       hostSetElementText(el, vnode.children)
@@ -55,7 +53,6 @@ function baseCreateRenderer(options) {
     const instance = initialVnode.component = createComponentInstance(initialVnode)
 
     setupComponent(instance)
-    // console.log(instance.render)
     //调用render方法,如果render方法中数据变了 会重新渲染
     setupRenderEffect(instance, initialVnode, container)   //给组件创建一个effect,用于渲染
   }
@@ -101,7 +98,6 @@ function baseCreateRenderer(options) {
 
   const patch = (n1, n2, container) => {
     let { shapeFlag } = n2
-    console.log(shapeFlag & ShapeFlags.STATEFUL_COMPONENT)
     if (shapeFlag & ShapeFlags.ELEMENT) {
       processElement(n1, n2, container)
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
