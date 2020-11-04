@@ -13,7 +13,6 @@ export function createApp(rootComponent) {
   const app = ensureRenderer().createApp(rootComponent)
   const { mount } = app
   app.mount = function (container) {
-    console.log(container)
     container = document.querySelector(container)
     //1、挂载时需要先将容器清空 再进行挂载
     container.innerHTML = ''

@@ -4,7 +4,6 @@ import { isString, ShapeFlags, isObject, isArray } from "../shared/index"
 export function createVnode(type, props: any = {}, children = null) {
   //type 可能是对象 也有可能是字符串
   const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : isObject(type) ? ShapeFlags.STATEFUL_COMPONENT : 0
-  console.log("createvnode:", type)
   const vnode = { //用来表示dom结果,也可以表示组件
     type,
     props,
