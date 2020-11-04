@@ -200,8 +200,6 @@
 
   var nodeOps = {
       createElement: function (type) {
-          console.log('123:', type);
-          // return document.createElement('div')
           return document.createElement(type);
       },
       setElementText: function (el, text) {
@@ -223,7 +221,6 @@
       if (children === void 0) { children = null; }
       //type 可能是对象 也有可能是字符串
       var shapeFlag = isString(type) ? 1 /* ELEMENT */ : isObject(type) ? 4 /* STATEFUL_COMPONENT */ : 0;
-      console.log("createvnode:", type);
       var vnode = {
           type: type,
           props: props,
@@ -251,7 +248,6 @@
           var app = {
               mount: function (container) {
                   var vnode = createVnode(rootComponent);
-                  console.log('444:', rootComponent);
                   render(vnode, container);
               }
           };
@@ -264,6 +260,7 @@
           type: vnode.type,
           props: {},
           vnode: vnode,
+          render: null,
           isMounted: false,
           setupState: null
       };
@@ -278,8 +275,10 @@
   function setupStatefulComponent(instance) {
       var Component = instance.type; //组件的虚拟节点
       var setup = Component.setup;
+      console.log("setup:", setup);
       if (setup) {
           var setUpResult = setup(); //获取setup返回的值
+          console.log("setupReasult:", setUpResult);
           //判断返回值类型
           handleSetupResult(instance, setUpResult);
       }
@@ -309,9 +308,7 @@
       var mountElement = function (vnode, container) {
           //n2是虚拟节点,container是容器
           var shapeFlag = vnode.shapeFlag, props = vnode.props;
-          console.log('aaa');
           var el = vnode.el = hostCreateElement(vnode.type);
-          console.log('bbb');
           //创建儿子节点
           if (shapeFlag & 1 /* ELEMENT */) {
               hostSetElementText(el, vnode.children);
@@ -336,7 +333,6 @@
           //组件的实例要记住组件的状态
           var instance = initialVnode.component = createComponentInstance(initialVnode);
           setupComponent(instance);
-          // console.log(instance.render)
           //调用render方法,如果render方法中数据变了 会重新渲染
           setupRenderEffect(instance, initialVnode, container); //给组件创建一个effect,用于渲染
       };
@@ -369,7 +365,6 @@
       };
       var patch = function (n1, n2, container) {
           var shapeFlag = n2.shapeFlag;
-          console.log(shapeFlag & 4 /* STATEFUL_COMPONENT */);
           if (shapeFlag & 1 /* ELEMENT */) {
               processElement(n1, n2, container);
           }
@@ -448,7 +443,6 @@
       var app = ensureRenderer().createApp(rootComponent);
       var mount = app.mount;
       app.mount = function (container) {
-          console.log(container);
           container = document.querySelector(container);
           //1、挂载时需要先将容器清空 再进行挂载
           container.innerHTML = '';

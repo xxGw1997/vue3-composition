@@ -5,6 +5,7 @@ export function createComponentInstance(vnode) {
     type: vnode.type,
     props: {},
     vnode,
+    render: null,
     isMounted: false,     //默认组件没有挂载
     setupState: null
   }
@@ -22,8 +23,10 @@ export const setupComponent = instance => {
 function setupStatefulComponent(instance) {
   const Component = instance.type   //组件的虚拟节点
   const { setup } = Component
+  console.log("setup:", setup)
   if (setup) {
     const setUpResult = setup()      //获取setup返回的值
+    console.log("setupReasult:", setUpResult)
     //判断返回值类型
     handleSetupResult(instance, setUpResult)
   }

@@ -35,11 +35,15 @@
     let App = {
       setup() {
         let state = reactive({ name: 'ywx', age: 13 })
+        setTimeout(() => {
+          state.name = 'xxgw'
+        }, 1000);
         return () => {  //render
           return h('div', { style: { color: 'red' } }, state.name + ":" + state.age)
         }
       }
     }
+
 
     //组件时如何渲染的-初始化的过程
     //vue3 runtime-core(核心) runtime-dom(针对浏览器平台 )

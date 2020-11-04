@@ -32,7 +32,6 @@ function baseCreateRenderer(options) {
         hostPatchProp(el, key, null, props[key])
       }
     }
-
     hostInsert(el, container)
 
   }
@@ -51,7 +50,6 @@ function baseCreateRenderer(options) {
     //组件挂载  1、创建组件的实例  2、初始化组件(找到组件的render方法)  3、执行render
     //组件的实例要记住组件的状态
     const instance = initialVnode.component = createComponentInstance(initialVnode)
-
     setupComponent(instance)
     //调用render方法,如果render方法中数据变了 会重新渲染
     setupRenderEffect(instance, initialVnode, container)   //给组件创建一个effect,用于渲染
