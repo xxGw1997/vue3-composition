@@ -17,7 +17,6 @@ function createGetter() {
     //effect1操作比如就是把name属性赋值给页面上div1的内容中  
     //effect2就是比如把name属性赋值给页面上div2的内容中
     track(target, key)
-    console.log('数据get')
 
     if (isObject(res)) {  //取值是对象 再进行递归代理->懒递归
       return reactive(res)
