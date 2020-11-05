@@ -16,6 +16,7 @@ export function createApp(rootComponent) {
     container = document.querySelector(container)
     //1、挂载时需要先将容器清空 再进行挂载
     container.innerHTML = ''
+    console.log('mount:',mount)
     mount(container)
   }
 

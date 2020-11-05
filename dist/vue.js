@@ -230,6 +230,7 @@
           key: props.key,
           shapeFlag: shapeFlag //用来标识当前虚拟节点的类型  元素、组件....
       };
+      console.log("shapeFlag:", shapeFlag);
       if (isArray(children)) {
           //或操作不仅可以表示当前节点的类型,还能表示儿子组件的类型
           // 00000001 元素
@@ -238,6 +239,9 @@
           vnode.shapeFlag |= 16 /* ARRAY_CHILDREN */;
       }
       else {
+          //00000100
+          //00001000
+          //00001100
           vnode.shapeFlag |= 8 /* TEXT_CHILDREN */;
       }
       return vnode;
@@ -264,6 +268,7 @@
           isMounted: false,
           setupState: null
       };
+      // console.log('instance.type:',instance.type)
       return instance;
   }
   var setupComponent = function (instance) {
@@ -294,6 +299,7 @@
   }
   function finishComponentSetup(instance) {
       var Component = instance.type;
+      // console.log('instance.type::',Component)
       if (Component.render) {
           instance.render = Component.render;
       }
@@ -309,7 +315,7 @@
           //n2是虚拟节点,container是容器
           var shapeFlag = vnode.shapeFlag, props = vnode.props;
           var el = vnode.el = hostCreateElement(vnode.type);
-          //创建儿子节点
+          //创建儿子节点 
           if (shapeFlag & 1 /* ELEMENT */) {
               hostSetElementText(el, vnode.children);
           }
@@ -338,10 +344,11 @@
       };
       var setupRenderEffect = function (instance, initialVnode, container) {
           //组件的effect
-          effect(function () {
+          effect(function componentEffect() {
               if (!instance.isMounted) {
                   //渲染组件中的内容
                   var subTree = instance.subTree = instance.render(); //组件对应渲染的结果
+                  console.log('subTree:', subTree);
                   patch(null, subTree, container);
                   instance.isMounted = true;
               }
@@ -364,6 +371,7 @@
           }
       };
       var patch = function (n1, n2, container) {
+          console.log('n2:', n2);
           var shapeFlag = n2.shapeFlag;
           if (shapeFlag & 1 /* ELEMENT */) {
               processElement(n1, n2, container);
@@ -446,6 +454,7 @@
           container = document.querySelector(container);
           //1、挂载时需要先将容器清空 再进行挂载
           container.innerHTML = '';
+          console.log('mount:', mount);
           mount(container);
       };
       return app;

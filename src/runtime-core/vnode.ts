@@ -13,6 +13,7 @@ export function createVnode(type, props: any = {}, children = null) {
     key: props.key,
     shapeFlag     //用来标识当前虚拟节点的类型  元素、组件....
   }
+  console.log("shapeFlag:",shapeFlag)
   if (isArray(children)) {
     //或操作不仅可以表示当前节点的类型,还能表示儿子组件的类型
     // 00000001 元素
@@ -20,6 +21,9 @@ export function createVnode(type, props: any = {}, children = null) {
     // 00010001 代表两者都有
     vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN
   } else {
+    //00000100
+    //00001000
+    //00001100
     vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN
   }
 

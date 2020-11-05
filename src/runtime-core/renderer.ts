@@ -21,7 +21,7 @@ function baseCreateRenderer(options) {
     //n2是虚拟节点,container是容器
     let { shapeFlag, props } = vnode
     let el = vnode.el = hostCreateElement(vnode.type)
-    //创建儿子节点
+    //创建儿子节点 
     if (shapeFlag & ShapeFlags.ELEMENT) {
       hostSetElementText(el, vnode.children)
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
@@ -57,10 +57,11 @@ function baseCreateRenderer(options) {
 
   const setupRenderEffect = (instance, initialVnode, container) => {
     //组件的effect
-    effect(function () {
+    effect(function componentEffect() {
       if (!instance.isMounted) {
         //渲染组件中的内容
         const subTree = instance.subTree = instance.render()    //组件对应渲染的结果
+        console.log('subTree:',subTree)
         patch(null, subTree, container)
 
         instance.isMounted = true
@@ -95,6 +96,7 @@ function baseCreateRenderer(options) {
   }
 
   const patch = (n1, n2, container) => {
+    console.log('n2:',n2)
     let { shapeFlag } = n2
     if (shapeFlag & ShapeFlags.ELEMENT) {
       processElement(n1, n2, container)

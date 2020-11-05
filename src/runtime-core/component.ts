@@ -9,7 +9,7 @@ export function createComponentInstance(vnode) {
     isMounted: false,     //默认组件没有挂载
     setupState: null
   }
-
+  // console.log('instance.type:',instance.type)
   return instance
 }
 
@@ -43,11 +43,11 @@ function handleSetupResult(instance, setUpResult) {
 
 function finishComponentSetup(instance) {
   const Component = instance.type
+  // console.log('instance.type::',Component)
   if (Component.render) {
     instance.render = Component.render
   } else if (!instance.render) {
-    //compile(Component.template) 编译成render函数
-
+    //compile(Component.template) 将模板编译成render函数
   }
 
 }
