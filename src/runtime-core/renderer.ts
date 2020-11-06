@@ -61,7 +61,7 @@ function baseCreateRenderer(options) {
       if (!instance.isMounted) {
         //渲染组件中的内容
         const subTree = instance.subTree = instance.render()    //组件对应渲染的结果
-        console.log('subTree:',subTree)
+        console.log('subTree:', subTree)
         patch(null, subTree, container)
 
         instance.isMounted = true
@@ -69,7 +69,7 @@ function baseCreateRenderer(options) {
         //更新逻辑
         let prev = instance.subTree   //上一次的渲染结果
         let next = instance.render()
-        console.log(prev, next)
+        console.log(prev, next) //接下来就是做dom diff 操作
       }
     })
   }
@@ -96,7 +96,7 @@ function baseCreateRenderer(options) {
   }
 
   const patch = (n1, n2, container) => {
-    console.log('n2:',n2)
+    console.log('n2:', n2)
     let { shapeFlag } = n2
     if (shapeFlag & ShapeFlags.ELEMENT) {
       processElement(n1, n2, container)
@@ -106,6 +106,7 @@ function baseCreateRenderer(options) {
   }
 
   const render = (vnode, container) => {
+    //首次render是挂载,所以n1(上一次的vnode)是null
     patch(null, vnode, container)
   }
 
