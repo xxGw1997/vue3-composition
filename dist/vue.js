@@ -351,6 +351,39 @@
               }
           }
       };
+      var patchKeyChildren = function (c1, c2, el) {
+          //内部有优化策略
+          //abc   i = 0
+          //abde  先从头开始比
+          var i = 0;
+          var e1 = c1.length - 1; //老 儿子中最后一项索引
+          var e2 = c2.length - 1; //新 儿子中最后一项索引
+          while (i <= e1 && i <= e2) {
+              var n1 = c1[i];
+              var n2 = c2[i];
+              if (isSameVnodeType(n1, n2)) {
+                  patch(n1, n2, el); //会递归比对子元素
+              }
+              else {
+                  break;
+              }
+              i++;
+          }
+          //abc
+          //eabc  再从后开始比
+          while (i <= e1 && i <= e2) {
+              var n1 = c1[e1];
+              var n2 = c2[e2];
+              if (isSameVnodeType(n1, n2)) {
+                  patch(n1, n2, el);
+              }
+              else {
+                  break;
+              }
+              e1--;
+              e2--;
+          }
+      };
       var patchChildren = function (n1, n2, el) {
           var c1 = n1.children; //获取所有老的子节点
           var c2 = n2.children; //获取所有新的子节点
@@ -368,6 +401,7 @@
               if (prevShapeFlag & 16 /* ARRAY_CHILDREN */) {
                   //新的是数组 老的是数组 => diff算法
                   console.log('diff 算法');
+                  patchKeyChildren(c1, c2, el);
               }
               else {
                   //新的是数组 老的是文本 => 

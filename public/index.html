@@ -44,10 +44,16 @@
         }, 1000);
         return () => {  //render
           return state.flag?
-            h('div',{style:{color:'red'}},'hello'):
+            h('div',{style:{color:'red'}},[
+              h('li',{key:'A',style:{background:'red'}},'A'),
+              h('li',{key:'B',style:{background:'yellow'}},'B'),
+              h('li',{key:'C',style:{background:'blue'}},'C')
+            ]):
             h('div',{style:{color:'blue'}},[
-              h('li',{},'hello'),
-              h('li',{},'world')
+              h('li',{key:'E',style:{background:'pink'}},'E'),
+              h('li',{key:'A',style:{background:'red'}},'A'),
+              h('li',{key:'B',style:{background:'yellow'}},'B'),
+              h('li',{key:'C',style:{background:'green'}},'C')
             ])
         }
       }
