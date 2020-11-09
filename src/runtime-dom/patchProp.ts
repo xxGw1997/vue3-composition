@@ -39,7 +39,6 @@ export function patchProp(el, key, prevValue, nextValue) {
       patchClass(el, nextValue)
       break;
     case 'style':
-      //{color:'red'}
       patchStyle(el, prevValue, nextValue)
       break;
     default:

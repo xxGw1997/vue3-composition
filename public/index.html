@@ -34,12 +34,21 @@
     let { createApp, reactive, h } = Vue
     let App = {
       setup() {
-        let state = reactive({ name: 'ywx', age: 13 })
+        // let state = reactive({ name: 'ywx', age: 13 })
+        // setTimeout(() => {
+        //   state.name = 'xxgw'
+        // }, 1000);
+        let state = reactive({flag:true})
         setTimeout(() => {
-          state.name = 'xxgw'
+          state.flag = !state.flag
         }, 1000);
         return () => {  //render
-          return h('div', { style: { color: 'red' } }, state.name + ":" + state.age)
+          return state.flag?
+            h('div',{style:{color:'red'}},'hello'):
+            h('div',{style:{color:'blue'}},[
+              h('li',{},'hello'),
+              h('li',{},'world')
+            ])
         }
       }
     }

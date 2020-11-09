@@ -2,6 +2,7 @@ import { createAppAPI } from "./apiCreateApp"
 import { ShapeFlags } from "../shared/index"
 import { createComponentInstance, setupComponent } from "./component"
 import { effect } from "../reactivity/index"
+import { patchProp } from "../runtime-dom/patchProp"
 
 export function createRenderer(options) {
   return baseCreateRenderer(options)
@@ -42,7 +43,67 @@ function baseCreateRenderer(options) {
     }
   }
 
+  const patchProps = (oldProps,newProps,el)=>{
+    if(oldProps !== newProps){
+      //1.新的属性需要覆盖掉老的属性
+      for(let key in newProps){
+        const prev = oldProps[key]
+        const next = newProps[key]
+        if(prev !== next){
+          hostPatchProp(el,key,prev,next)
+        }
+      }
+      //2.老的有的属性   新的没有  需要将老的删除掉
+      for(const key in oldProps){
+        if(!(key in newProps)){
+          hostPatchProp(el,key,oldProps[key],key)
+        }
+      }
+    }
+  }
+
+  const patchChildren = (n1,n2,el)=>{
+    const c1 = n1.children  //获取所有老的子节点
+    const c2 = n2.children  //获取所有新的子节点
+    const prevShapeFlag = n1.shapeFlag  //上一次的元素类型
+    const shapeFlag = n2.shapeFlag  //本次的元素类型
+
+    if(shapeFlag & ShapeFlags.TEXT_CHILDREN){ //文本元素
+      //1、老的是文本 && 新的是文本 =>  新的覆盖掉老的
+      //2、老的是数组 && 新的是文本 =>  覆盖掉老的即可
+      if(c2 !== c1){
+        hostSetElementText(el,c2)
+      }
+    }else{
+      //新的是数组
+      if(prevShapeFlag & ShapeFlags.ARRAY_CHILDREN){
+        //新的是数组 老的是数组 => diff算法
+        console.log('diff 算法')
+      }else{
+        //新的是数组 老的是文本 => 
+        if(prevShapeFlag & ShapeFlags.TEXT_CHILDREN){
+          //移除老的文本
+          hostSetElementText(el,'')
+        }
+        if(shapeFlag & ShapeFlags.ARRAY_CHILDREN){
+          //把新的元素进行挂载,并生成新的节点塞进去
+          for(let i=0;i<c2.length;i++){
+            patch(null,c2[i],el)
+          }
+        }
+      }
+    }
+
+  }
+
   const patchElement = (n1, n2, container) => {
+    //如果n1和n2的类型一样
+    let el = (n2.el = n1.el)
+    const oldProps = n1.props || {}
+    const newProps = n2.props || {}
+    patchProps(oldProps,newProps,el)  //比对前后属性的元素差异
+
+    patchChildren(n1,n2,el)
 
   }
 
@@ -69,7 +130,8 @@ function baseCreateRenderer(options) {
         //更新逻辑
         let prev = instance.subTree   //上一次的渲染结果
         let next = instance.render()
-        console.log(prev, next) //接下来就是做dom diff 操作
+        // console.log(prev, next) //接下来就是做dom diff 操作
+        patch(prev,next,container)
       }
     })
   }
@@ -90,14 +152,27 @@ function baseCreateRenderer(options) {
   const processElement = (n1, n2, container) => {
     if (n1 == null) {
       mountElement(n2, container)
-    } else {
+    } else {  //比较两个虚拟节点
       patchElement(n1, n2, container)
     }
   }
 
+  const isSameVnodeType= (n1,n2)=>{
+    return n1.type == n2.type && n1.key === n2.key
+  }
+
   const patch = (n1, n2, container) => {
-    console.log('n2:', n2)
     let { shapeFlag } = n2
+
+    //先判断是否有上一次节点,再判断上次节点和本次节点是否是相同
+    if(n1 && !isSameVnodeType(n1,n2)){
+      //删除老节点 老节点的虚拟节点上对应着真实节点
+      hostRemove(n1.el)
+      n1 = null
+
+    }
+
+
     if (shapeFlag & ShapeFlags.ELEMENT) {
       processElement(n1, n2, container)
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {

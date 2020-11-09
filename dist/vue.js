@@ -119,7 +119,6 @@
           //effect1操作比如就是把name属性赋值给页面上div1的内容中  
           //effect2就是比如把name属性赋值给页面上div2的内容中
           track(target, key);
-          console.log('数据get');
           if (isObject(res)) { //取值是对象 再进行递归代理->懒递归
               return reactive(res);
           }
@@ -334,6 +333,65 @@
               patch(null, children[i], container);
           }
       };
+      var patchProps = function (oldProps, newProps, el) {
+          if (oldProps !== newProps) {
+              //1.新的属性需要覆盖掉老的属性
+              for (var key in newProps) {
+                  var prev = oldProps[key];
+                  var next = newProps[key];
+                  if (prev !== next) {
+                      hostPatchProp(el, key, prev, next);
+                  }
+              }
+              //2.老的有的属性   新的没有  需要将老的删除掉
+              for (var key in oldProps) {
+                  if (!(key in newProps)) {
+                      hostPatchProp(el, key, oldProps[key], key);
+                  }
+              }
+          }
+      };
+      var patchChildren = function (n1, n2, el) {
+          var c1 = n1.children; //获取所有老的子节点
+          var c2 = n2.children; //获取所有新的子节点
+          var prevShapeFlag = n1.shapeFlag; //上一次的元素类型
+          var shapeFlag = n2.shapeFlag; //本次的元素类型
+          if (shapeFlag & 8 /* TEXT_CHILDREN */) { //文本元素
+              //1、老的是文本 && 新的是文本 =>  新的覆盖掉老的
+              //2、老的是数组 && 新的是文本 =>  覆盖掉老的即可
+              if (c2 !== c1) {
+                  hostSetElementText(el, c2);
+              }
+          }
+          else {
+              //新的是数组
+              if (prevShapeFlag & 16 /* ARRAY_CHILDREN */) {
+                  //新的是数组 老的是数组 => diff算法
+                  console.log('diff 算法');
+              }
+              else {
+                  //新的是数组 老的是文本 => 
+                  if (prevShapeFlag & 8 /* TEXT_CHILDREN */) {
+                      //移除老的文本
+                      hostSetElementText(el, '');
+                  }
+                  if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+                      //把新的元素进行挂载,并生成新的节点塞进去
+                      for (var i = 0; i < c2.length; i++) {
+                          patch(null, c2[i], el);
+                      }
+                  }
+              }
+          }
+      };
+      var patchElement = function (n1, n2, container) {
+          //如果n1和n2的类型一样
+          var el = (n2.el = n1.el);
+          var oldProps = n1.props || {};
+          var newProps = n2.props || {};
+          patchProps(oldProps, newProps, el); //比对前后属性的元素差异
+          patchChildren(n1, n2, el);
+      };
       var mountComponent = function (initialVnode, container) {
           //组件挂载  1、创建组件的实例  2、初始化组件(找到组件的render方法)  3、执行render
           //组件的实例要记住组件的状态
@@ -356,7 +414,8 @@
                   //更新逻辑
                   var prev = instance.subTree; //上一次的渲染结果
                   var next = instance.render();
-                  console.log(prev, next);
+                  // console.log(prev, next) //接下来就是做dom diff 操作
+                  patch(prev, next, container);
               }
           });
       };
@@ -369,10 +428,21 @@
           if (n1 == null) {
               mountElement(n2, container);
           }
+          else { //比较两个虚拟节点
+              patchElement(n1, n2);
+          }
+      };
+      var isSameVnodeType = function (n1, n2) {
+          return n1.type == n2.type && n1.key === n2.key;
       };
       var patch = function (n1, n2, container) {
-          console.log('n2:', n2);
           var shapeFlag = n2.shapeFlag;
+          //先判断是否有上一次节点,再判断上次节点和本次节点是否是相同
+          if (n1 && !isSameVnodeType(n1, n2)) {
+              //删除老节点 老节点的虚拟节点上对应着真实节点
+              hostRemove(n1.el);
+              n1 = null;
+          }
           if (shapeFlag & 1 /* ELEMENT */) {
               processElement(n1, n2, container);
           }
@@ -381,6 +451,7 @@
           }
       };
       var render = function (vnode, container) {
+          //首次render是挂载,所以n1(上一次的vnode)是null
           patch(null, vnode, container);
       };
       return {
@@ -433,7 +504,6 @@
               patchClass(el, nextValue);
               break;
           case 'style':
-              //{color:'red'}
               patchStyle(el, prevValue, nextValue);
               break;
           default:
