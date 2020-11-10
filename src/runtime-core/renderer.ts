@@ -18,7 +18,7 @@ function baseCreateRenderer(options) {
     remove: hostRemove
   } = options
 
-  const mountElement = (vnode, container) => {
+  const mountElement = (vnode, container,anchor) => {
     //n2是虚拟节点,container是容器
     let { shapeFlag, props } = vnode
     let el = vnode.el = hostCreateElement(vnode.type)
@@ -33,7 +33,7 @@ function baseCreateRenderer(options) {
         hostPatchProp(el, key, null, props[key])
       }
     }
-    hostInsert(el, container)
+    hostInsert(el, container,anchor)
 
   }
 
@@ -79,8 +79,8 @@ function baseCreateRenderer(options) {
       }
       i++
     }
-    //abc
-    //eabc  再从后开始比
+    //abc   //e1=2
+    //eabc  //e2=3    再从后开始比
     while(i <= e1 && i <= e2){
       const n1 = c1[e1]
       const n2 = c2[e2]
@@ -91,6 +91,66 @@ function baseCreateRenderer(options) {
       }
       e1--
       e2--
+    }
+
+    //只考虑 元素新增和删除的情况 
+    // abc => abcd    (i=3   e1=2  e2=3)    abc  =>  dabc(i=0  e1=-1  e2=0)
+
+    // 只要i大于 e1 表示新增属性
+    if(i>e1){ //说明有新增
+      if(i<=e2){  //表示有新增的部分
+        // 先根据e2 取他的下一个元素 和 数组长度进行比较
+        const nextPos = e2 + 1
+        const anchor = nextPos < c2.length ? c2[nextPos].el : null
+        while(i<=e2){
+          patch(null,c2[i],el,anchor)
+          i++
+        }
+        console.log(i,e1,e2)
+      }
+    }else if(i>e2){  //abcd => abc (i=3   e1=3   e2=2)
+      //删除
+      while(i<=e1){
+        hostRemove(c1[i].el)
+        i++
+      }
+    }else{
+      //无规律的情况,  diff 算法核心
+      //ab  [cde]   fg    //s1=2     e1=4
+      //ab  [edch]  fg    //s2=2     e2=5
+      const s1 = i
+      const s2 = i
+      //新的索引和key做成一个映射表
+      const keyToNewIndexMap = new Map()
+      for(let i = s2; i<= e2 ;i++){
+        const nextChild = c2[i]
+        keyToNewIndexMap.set(nextChild.key,i)
+      }
+      const toBePatched = e2 - s2 + 1
+      const newIndexToOldMapIndex = new Array(toBePatched).fill(0)
+      //只是做相同属性的diff,但是位置还没有更换
+      for(let i = s1 ; i <= e1 ;i++){
+        const prevChild = c1[i]
+        let newIndex = keyToNewIndexMap.get(prevChild.key)   //获取新的索引
+        if(newIndex == undefined){
+          hostRemove(prevChild.el)    //老的有 新的没有直接删除
+        }else{
+          newIndexToOldMapIndex[newIndex - s2] = i + 1
+          patch(prevChild,c2[newIndex],el)
+        }
+      }
+
+      for(let i = toBePatched -1; i>=0; i--){
+        const nextIndex = s2 + i    // [edch]  先找到h的索引
+        const nextChild = c2[nextIndex]   // 找到h
+        let anchor = nextIndex + 1 < c2.length ? c2[nextIndex + 1].el:null    //找到当前元素的下一个元素
+        if(newIndexToOldMapIndex[i] == 0){  //这个是一个新元素  直接创建插入到当前元素的下一个即可
+          patch(null,nextChild,el,anchor)
+        }else{
+          //根据参照物 依次将节点直接移动过去 =>  所有节点都要移动(但是有些节点可以不动)
+          hostInsert(nextChild.el,el,anchor)
+        }
+      }
     }
 
   }
@@ -183,9 +243,9 @@ function baseCreateRenderer(options) {
     }
   }
 
-  const processElement = (n1, n2, container) => {
+  const processElement = (n1, n2, container,anchor) => {
     if (n1 == null) {
-      mountElement(n2, container)
+      mountElement(n2, container,anchor)
     } else {  //比较两个虚拟节点
       patchElement(n1, n2, container)
     }
@@ -195,7 +255,7 @@ function baseCreateRenderer(options) {
     return n1.type == n2.type && n1.key === n2.key
   }
 
-  const patch = (n1, n2, container) => {
+  const patch = (n1, n2, container,anchor=null) => {
     let { shapeFlag } = n2
 
     //先判断是否有上一次节点,再判断上次节点和本次节点是否是相同
@@ -208,7 +268,7 @@ function baseCreateRenderer(options) {
 
 
     if (shapeFlag & ShapeFlags.ELEMENT) {
-      processElement(n1, n2, container)
+      processElement(n1, n2, container,anchor)
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
       processComponent(n1, n2, container)
     }
