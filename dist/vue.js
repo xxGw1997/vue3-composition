@@ -315,7 +315,7 @@
           var shapeFlag = vnode.shapeFlag, props = vnode.props;
           var el = vnode.el = hostCreateElement(vnode.type);
           //创建儿子节点 
-          if (shapeFlag & 1 /* ELEMENT */) {
+          if (shapeFlag & 8 /* TEXT_CHILDREN */) {
               hostSetElementText(el, vnode.children);
           }
           else if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
@@ -431,6 +431,9 @@
                       patch(prevChild, c2[newIndex], el);
                   }
               }
+              //最长增长序列  [0,1]
+              var increasingIndexSequence = getSequence(newIndexToOldMapIndex);
+              var j = increasingIndexSequence.length - 1;
               for (var i_3 = toBePatched - 1; i_3 >= 0; i_3--) {
                   var nextIndex = s2 + i_3; // [edch]  先找到h的索引
                   var nextChild = c2[nextIndex]; // 找到h
@@ -440,11 +443,57 @@
                   }
                   else {
                       //根据参照物 依次将节点直接移动过去 =>  所有节点都要移动(但是有些节点可以不动)
-                      hostInsert(nextChild.el, el, anchor);
+                      if (j < 0 || i_3 != increasingIndexSequence[j]) {
+                          hostInsert(nextChild.el, el, anchor);
+                      }
+                      else {
+                          j--;
+                      }
                   }
               }
           }
       };
+      function getSequence(arr) {
+          var p = arr.slice();
+          var result = [0];
+          var i, j, u, v, c;
+          var len = arr.length;
+          for (i = 0; i < len; i++) {
+              var arrI = arr[i];
+              if (arrI !== 0) {
+                  j = result[result.length - 1];
+                  if (arr[j] < arrI) {
+                      p[i] = j;
+                      result.push(i);
+                      continue;
+                  }
+                  u = 0;
+                  v = result.length - 1;
+                  while (u < v) {
+                      c = ((u + v) / 2) | 0;
+                      if (arr[result[c]] < arrI) {
+                          u = c + 1;
+                      }
+                      else {
+                          v = c;
+                      }
+                  }
+                  if (arrI < arr[result[u]]) {
+                      if (u > 0) {
+                          p[i] = result[u - 1];
+                      }
+                      result[u] = i;
+                  }
+              }
+          }
+          u = result.length;
+          v = result[u - 1];
+          while (u-- > 0) {
+              result[u] = v;
+              v = p[v];
+          }
+          return result;
+      }
       var patchChildren = function (n1, n2, el) {
           var c1 = n1.children; //获取所有老的子节点
           var c2 = n2.children; //获取所有新的子节点
