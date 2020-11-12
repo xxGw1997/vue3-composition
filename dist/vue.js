@@ -590,11 +590,11 @@
                   instance.isMounted = true;
               }
               else {
+                  //如果依赖的属性改变,会执行再次执行这个方法,并且是走更新逻辑
                   //更新逻辑
-                  var prev = instance.subTree; //上一次的渲染结果
-                  var next = instance.render();
-                  // console.log(prev, next) //接下来就是做dom diff 操作
-                  patch(prev, next, container);
+                  var prev = instance.subTree; //先把上一次的渲染结果保存
+                  var next = instance.render(); //再执行一次render组件实例的render函数得到这一次的渲染结果
+                  patch(prev, next, container); //接下来就是做diff操作,两棵渲染树的比对
               }
           });
       };
