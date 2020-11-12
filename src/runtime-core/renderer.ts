@@ -10,6 +10,7 @@ export function createRenderer(options) {
 
 function baseCreateRenderer(options) {
 
+  //平台相关的操作方法
   const {
     createElement: hostCreateElement,
     patchProp: hostPatchProp,
@@ -19,25 +20,33 @@ function baseCreateRenderer(options) {
   } = options
 
   const mountElement = (vnode, container, anchor) => {
-    //n2是虚拟节点,container是容器
+    //vnode是元素虚拟节点,container是容器
+
+    //获取vnode的类型和属性
     let { shapeFlag, props } = vnode
+    //创建对应vnode的dom节点并且保存到vnode 的el上
     let el = vnode.el = hostCreateElement(vnode.type)
     //创建儿子节点 
-    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) { //判断儿子节点的类型是否是文本节点
+      //单个文本儿子节点,直接将对应节点的children(就是节点的文本)插入到指定el中
       hostSetElementText(el, vnode.children)
-    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+    } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {//判断儿子节点的类型是否是数组
+      //处理儿子们的逻辑
       mountChildren(vnode.children, el)
     }
-    if (props) {
+    if (props) { //判断当前vnode 是否有props属性
       for (let key in props) {
+        //循环遍历每一个props属性,并且进行设置属性的操作
         hostPatchProp(el, key, null, props[key])
       }
     }
+    //最后将处理完的el插入到对应容器中
     hostInsert(el, container, anchor)
 
   }
 
   const mountChildren = (children, container) => {
+    //将儿子们进行遍历,并且将每一个子元素进行patch操作
     for (let i = 0; i < children.length; i++) {
       patch(null, children[i], container)
     }
@@ -256,7 +265,10 @@ function baseCreateRenderer(options) {
   const mountComponent = (initialVnode, container) => {
     //组件挂载  1、创建组件的实例  2、初始化组件(找到组件的render方法)  3、执行render
     //组件的实例要记住组件的状态
+    //创建组件的示例
     const instance = initialVnode.component = createComponentInstance(initialVnode)
+    console.log("instance:", instance)
+    //初始化组件,即找到组件的setup方法,并赋值给instance上的render属性
     setupComponent(instance)
     //调用render方法,如果render方法中数据变了 会重新渲染
     setupRenderEffect(instance, initialVnode, container)   //给组件创建一个effect,用于渲染
@@ -265,12 +277,13 @@ function baseCreateRenderer(options) {
   const setupRenderEffect = (instance, initialVnode, container) => {
     //组件的effect
     effect(function componentEffect() {
-      if (!instance.isMounted) {
-        //渲染组件中的内容
+      if (!instance.isMounted) {//判断组件实例是否已经渲染
+        //渲染组件中的内容并且将结果保存到subTree
         const subTree = instance.subTree = instance.render()    //组件对应渲染的结果
         console.log('subTree:', subTree)
+        //渲染子树的节点
         patch(null, subTree, container)
-
+        //渲染完后将挂载状态置为true
         instance.isMounted = true
       } else {
         //更新逻辑
@@ -289,16 +302,20 @@ function baseCreateRenderer(options) {
 
   const processComponent = (n1, n2, container) => {
     if (n1 == null) {
+      //n1为空,做组件的挂载操作
       mountComponent(n2, container)
     } else {
+      //n1不为空,做组件的更新操作
       updateComponent(n1, n2, container)
     }
   }
 
   const processElement = (n1, n2, container, anchor) => {
     if (n1 == null) {
+      //n1为空,做元素的挂载操作
       mountElement(n2, container, anchor)
     } else {  //比较两个虚拟节点
+      //n1不为空,做元素的更新操作
       patchElement(n1, n2, container)
     }
   }
@@ -318,16 +335,19 @@ function baseCreateRenderer(options) {
 
     }
 
-
+    //元素的创建方式和创建的创建方式不同
+    //使用& 与操作可以得到vnode的type的类型
     if (shapeFlag & ShapeFlags.ELEMENT) {
+      //如果是元素类型,则去处理元素逻辑
       processElement(n1, n2, container, anchor)
     } else if (shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+      //如果是组件类型,则去处理组件的逻辑
       processComponent(n1, n2, container)
     }
   }
 
   const render = (vnode, container) => {
-    //首次render是挂载,所以n1(上一次的vnode)是null
+    //首次渲染render是挂载,所以n1(上一次的vnode)是null
     patch(null, vnode, container)
   }
 

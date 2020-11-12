@@ -218,8 +218,13 @@
   function createVnode(type, props, children) {
       if (props === void 0) { props = {}; }
       if (children === void 0) { children = null; }
-      //type 可能是对象 也有可能是字符串
-      var shapeFlag = isString(type) ? 1 /* ELEMENT */ : isObject(type) ? 4 /* STATEFUL_COMPONENT */ : 0;
+      //type 可能是对象(组件) 也有可能是字符串
+      //设置vnode 代表的类型
+      var shapeFlag = isString(type) ? //先判断type是否是字符串
+          1 /* ELEMENT */ : //是字符串 则代表是 元素
+          isObject(type) ? //不是字符串,再判断是否是对象类型
+              4 /* STATEFUL_COMPONENT */ : //是对象 则代表是 状态组件
+              0; //不是对象  置为空
       var vnode = {
           type: type,
           props: props,
@@ -229,18 +234,21 @@
           key: props.key,
           shapeFlag: shapeFlag //用来标识当前虚拟节点的类型  元素、组件....
       };
-      console.log("shapeFlag:", shapeFlag);
-      if (isArray(children)) {
+      console.log("type:", vnode.type);
+      if (isArray(children)) { //判断儿子是否是数组类型
           //或操作不仅可以表示当前节点的类型,还能表示儿子组件的类型
           // 00000001 元素
           // 00010000 儿子组件
           // 00010001 代表两者都有
+          //  使用或等操作把vnode的类型设置为 既可以表示vnode 的类型又可以表示vnode的children的类型
+          //如果儿子 是数组类型  则把vnode类型设置为儿子节点是数组
           vnode.shapeFlag |= 16 /* ARRAY_CHILDREN */;
       }
       else {
           //00000100
           //00001000
           //00001100
+          //如果儿子不是数组类型  则把vnode 类型设置为儿子节点是文本类型
           vnode.shapeFlag |= 8 /* TEXT_CHILDREN */;
       }
       return vnode;
@@ -250,7 +258,14 @@
       return function (rootComponent) {
           var app = {
               mount: function (container) {
+                  //用户调用的mount方法   
+                  //当用户 调用createApp(App).mount('#app')这个时
+                  //会走到这
+                  //创建 将用户传入的rootComponent(App对象)转换成一个vnode对象
+                  //创建组件的虚拟节点
                   var vnode = createVnode(rootComponent);
+                  //根据虚拟节点 和 容器进行渲染
+                  //具体的内部渲染逻辑以及需要做的事情在renderer文件中,其实就是调用patch方法
                   render(vnode, container);
               }
           };
@@ -278,7 +293,7 @@
   };
   function setupStatefulComponent(instance) {
       var Component = instance.type; //组件的虚拟节点
-      var setup = Component.setup;
+      var setup = Component.setup; //将setup方法获取
       console.log("setup:", setup);
       if (setup) {
           var setUpResult = setup(); //获取setup返回的值
@@ -288,47 +303,62 @@
       }
   }
   function handleSetupResult(instance, setUpResult) {
-      if (isFunction(setUpResult)) {
+      if (isFunction(setUpResult)) { //判断这个setup返回值是否是一个函数
+          //是函数,将该返回值赋值给实例的render属性
           instance.render = setUpResult;
       }
       else {
+          //不是函数,把该返回值赋值给setup返回的state
           instance.setupState = setUpResult;
       }
+      //对当前的render和状态进行合并
       finishComponentSetup(instance);
   }
   function finishComponentSetup(instance) {
+      //将组件实例的setup方法拿到
       var Component = instance.type;
-      // console.log('instance.type::',Component)
-      if (Component.render) {
+      //用户可能在setup中自己手写一个render方法
+      if (Component.render) { //判断组件是否有render方法
+          //有自己有render方法,则把用户自己写的覆盖setup函数返回的render方法
+          //默认render的优先级高于setup返回的render
           instance.render = Component.render;
       }
       else if (!instance.render) ;
+      //TODO  vue3 兼容vue2 的一些操作
   }
 
   function createRenderer(options) {
       return baseCreateRenderer(options);
   }
   function baseCreateRenderer(options) {
+      //平台相关的操作方法
       var hostCreateElement = options.createElement, hostPatchProp = options.patchProp, hostSetElementText = options.setElementText, hostInsert = options.insert, hostRemove = options.remove;
       var mountElement = function (vnode, container, anchor) {
-          //n2是虚拟节点,container是容器
+          //vnode是元素虚拟节点,container是容器
+          //获取vnode的类型和属性
           var shapeFlag = vnode.shapeFlag, props = vnode.props;
+          //创建对应vnode的dom节点并且保存到vnode 的el上
           var el = vnode.el = hostCreateElement(vnode.type);
           //创建儿子节点 
-          if (shapeFlag & 8 /* TEXT_CHILDREN */) {
+          if (shapeFlag & 8 /* TEXT_CHILDREN */) { //判断儿子节点的类型是否是文本节点
+              //单个文本儿子节点,直接将对应节点的children(就是节点的文本)插入到指定el中
               hostSetElementText(el, vnode.children);
           }
-          else if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+          else if (shapeFlag & 16 /* ARRAY_CHILDREN */) { //判断儿子节点的类型是否是数组
+              //处理儿子们的逻辑
               mountChildren(vnode.children, el);
           }
-          if (props) {
+          if (props) { //判断当前vnode 是否有props属性
               for (var key in props) {
+                  //循环遍历每一个props属性,并且进行设置属性的操作
                   hostPatchProp(el, key, null, props[key]);
               }
           }
+          //最后将处理完的el插入到对应容器中
           hostInsert(el, container, anchor);
       };
       var mountChildren = function (children, container) {
+          //将儿子们进行遍历,并且将每一个子元素进行patch操作
           for (var i = 0; i < children.length; i++) {
               patch(null, children[i], container);
           }
@@ -539,7 +569,10 @@
       var mountComponent = function (initialVnode, container) {
           //组件挂载  1、创建组件的实例  2、初始化组件(找到组件的render方法)  3、执行render
           //组件的实例要记住组件的状态
+          //创建组件的示例
           var instance = initialVnode.component = createComponentInstance(initialVnode);
+          console.log("instance:", instance);
+          //初始化组件,即找到组件的setup方法,并赋值给instance上的render属性
           setupComponent(instance);
           //调用render方法,如果render方法中数据变了 会重新渲染
           setupRenderEffect(instance, initialVnode, container); //给组件创建一个effect,用于渲染
@@ -547,11 +580,13 @@
       var setupRenderEffect = function (instance, initialVnode, container) {
           //组件的effect
           effect(function componentEffect() {
-              if (!instance.isMounted) {
-                  //渲染组件中的内容
+              if (!instance.isMounted) { //判断组件实例是否已经渲染
+                  //渲染组件中的内容并且将结果保存到subTree
                   var subTree = instance.subTree = instance.render(); //组件对应渲染的结果
                   console.log('subTree:', subTree);
+                  //渲染子树的节点
                   patch(null, subTree, container);
+                  //渲染完后将挂载状态置为true
                   instance.isMounted = true;
               }
               else {
@@ -565,14 +600,17 @@
       };
       var processComponent = function (n1, n2, container) {
           if (n1 == null) {
+              //n1为空,做组件的挂载操作
               mountComponent(n2, container);
           }
       };
       var processElement = function (n1, n2, container, anchor) {
           if (n1 == null) {
+              //n1为空,做元素的挂载操作
               mountElement(n2, container, anchor);
           }
           else { //比较两个虚拟节点
+              //n1不为空,做元素的更新操作
               patchElement(n1, n2);
           }
       };
@@ -588,15 +626,19 @@
               hostRemove(n1.el);
               n1 = null;
           }
+          //元素的创建方式和创建的创建方式不同
+          //使用& 与操作可以得到vnode的type的类型
           if (shapeFlag & 1 /* ELEMENT */) {
+              //如果是元素类型,则去处理元素逻辑
               processElement(n1, n2, container, anchor);
           }
           else if (shapeFlag & 4 /* STATEFUL_COMPONENT */) {
+              //如果是组件类型,则去处理组件的逻辑
               processComponent(n1, n2, container);
           }
       };
       var render = function (vnode, container) {
-          //首次render是挂载,所以n1(上一次的vnode)是null
+          //首次渲染render是挂载,所以n1(上一次的vnode)是null
           patch(null, vnode, container);
       };
       return {
@@ -607,28 +649,34 @@
   function h(type, props, children) {
       if (props === void 0) { props = {}; }
       if (children === void 0) { children = null; }
+      //创建元素的虚拟节点
       return createVnode(type, props, children);
   }
 
   function patchClass(el, value) {
+      //class 属性直接覆盖之前的即可
       if (value == null) {
+          //如果需要更新的class 是null,将需要修改的class的值清空即可
           value = '';
       }
+      //将要更新的类名覆盖之前的即可
       el.className = value;
   }
   function patchStyle(el, prev, next) {
       //{color:red}  {background:red}
+      //获取当前元素的style属性
       var style = el.style;
-      if (!next) {
+      if (!next) { //判断需要更新的style 是否有值,如果没有值,则说明不需要有样式
+          //直接将style 移除掉即可
           el.removeAttribute('style');
       }
-      else {
-          for (var key in next) {
+      else { //如果有值
+          for (var key in next) { //先遍历新的style中的属性,并且把新的属性更新到style中
               style[key] = next[key];
           }
-          if (prev) {
-              for (var key in prev) {
-                  if (next[key] == null) {
+          if (prev) { //判断之前style 属性 是否有值  如果有值
+              for (var key in prev) { //遍历 之前style中的属性
+                  if (next[key] == null) { //如果之前的style有该属性,但是在新的中没有,则需要把这个属性给移除掉
                       style[key] = '';
                   }
               }
@@ -636,27 +684,31 @@
       }
   }
   function patchAttr(el, key, value) {
-      if (value == null) {
+      if (value == null) { //如果需要更新的值为空,则直接移除之前的属性就可
           el.removeAttribute(key);
       }
-      else {
+      else { // 否者设置对应属性即可
           el.setAttribute(key, value);
       }
   }
   function patchProp(el, key, prevValue, nextValue) {
       switch (key) {
           case 'class':
+              //修改class 
               patchClass(el, nextValue);
               break;
           case 'style':
+              //修改style 
               patchStyle(el, prevValue, nextValue);
               break;
           default:
+              //修改属性
               patchAttr(el, key, nextValue);
               break;
       }
   }
 
+  //平台相关的操作
   var renderOptions = __assign(__assign({}, nodeOps), { patchProp: patchProp });
   function ensureRenderer() {
       return createRenderer(renderOptions);
