@@ -52,21 +52,20 @@ function baseCreateRenderer(options) {
     }
   }
 
-  const patchProps =
-    (oldProps, newProps, el) => {
-      if (oldProps !== newProps) {
+  const patchProps = (oldProps, newProps, el) => {
+      if (oldProps !== newProps) {  //先判断新对象和老对象是否是同一个对象,如果是同一个对象则不需要处理
         //1.新的属性需要覆盖掉老的属性
-        for (let key in newProps) {
-          const prev = oldProps[key]
-          const next = newProps[key]
-          if (prev !== next) {
-            hostPatchProp(el, key, prev, next)
+        for (let key in newProps) { //遍历新属性的每一个key值
+          const prev = oldProps[key]  //拿到老节点上的key属性,如果没有则为空
+          const next = newProps[key]  //拿到新节点上的key属性
+          if (prev !== next) {  //先比对两个属性是否相同,不同才需要更新属性差异
+            hostPatchProp(el, key, prev, next)    //对应平台dom操作,更新对应元素的属性
           }
         }
         //2.老的有的属性   新的没有  需要将老的删除掉
-        for (const key in oldProps) {
-          if (!(key in newProps)) {
-            hostPatchProp(el, key, oldProps[key], key)
+        for (const key in oldProps) { //遍历老的属性key
+          if (!(key in newProps)) { //如果老的节点属性key在新的节点中没有该key属性
+            hostPatchProp(el, key, oldProps[key], null) //将老的节点中该属性删除
           }
         }
       }
@@ -74,11 +73,13 @@ function baseCreateRenderer(options) {
 
   const patchKeyChildren = (c1, c2, el) => {
     //内部有优化策略
+
+    //1、先从头部开始比
     //abc   i = 0
-    //abde  先从头开始比
-    let i = 0
-    let e1 = c1.length - 1  //老 儿子中最后一项索引
-    let e2 = c2.length - 1  //新 儿子中最后一项索引
+    //abde
+    let i = 0   //头指针
+    let e1 = c1.length - 1  //老 儿子中最后一项索引 尾指针
+    let e2 = c2.length - 1  //新 儿子中最后一项索引 尾指针
     while (i <= e1 && i <= e2) {
       const n1 = c1[i]
       const n2 = c2[i]
@@ -89,8 +90,10 @@ function baseCreateRenderer(options) {
       }
       i++
     }
+
+    //2、再从尾部开始比
     //abc   //e1=2
-    //eabc  //e2=3    再从后开始比
+    //eabc  //e2=3
     while (i <= e1 && i <= e2) {
       const n1 = c1[e1]
       const n2 = c2[e2]
@@ -111,7 +114,7 @@ function baseCreateRenderer(options) {
       if (i <= e2) {  //表示有新增的部分
         // 先根据e2 取他的下一个元素 和 数组长度进行比较
         const nextPos = e2 + 1
-        const anchor = nextPos < c2.length ? c2[nextPos].el : null
+        const anchor = nextPos < c2.length ? c2[nextPos].el : null    //插入到参照物anchor的前面 
         while (i <= e2) {
           patch(null, c2[i], el, anchor)
           i++
@@ -126,18 +129,23 @@ function baseCreateRenderer(options) {
       }
     } else {
       //无规律的情况,  diff 算法核心
-      //ab  [cde]   fg    //s1=2     e1=4
-      //ab  [edch]  fg    //s2=2     e2=5
+      //ab  [cde]   fg    //s1=2     e1=4   2-4之间需要diff
+      //ab  [edch]  fg    //s2=2     e2=5   2-5之间需要diff
       const s1 = i
       const s2 = i
       //新的索引和key做成一个映射表
       const keyToNewIndexMap = new Map()
-      for (let i = s2; i <= e2; i++) {
+      for (let i = s2; i <= e2; i++) {  //把新的儿子节点数组 2-5之间遍历
         const nextChild = c2[i]
-        keyToNewIndexMap.set(nextChild.key, i)
+        keyToNewIndexMap.set(nextChild.key, i)  //把新的儿子节点做成映射表,表示出其位置
       }
-      const toBePatched = e2 - s2 + 1
+      //把新索引对应的老的索引 做成一个映射表
+      //一开始数组是长度为  新的元素需要diff的儿子数组长度 并且内容都为0 的数组,
+      const toBePatched = e2 - s2 + 1   
       const newIndexToOldMapIndex = new Array(toBePatched).fill(0)
+      //再遍历老儿子中的每个儿子
+      //1、如果老的有该属性,新的中没有该属性,则直接删除该儿子节点
+      //2、如果老的有,新的也有,则把数组中对应位置的0元素变成老儿子节点对应位置(即第几个,索引+1)更新到数组中
       //只是做相同属性的diff,但是位置还没有更换
       for (let i = s1; i <= e1; i++) {
         const prevChild = c1[i]
@@ -146,7 +154,7 @@ function baseCreateRenderer(options) {
           hostRemove(prevChild.el)    //老的有 新的没有直接删除
         } else {
           newIndexToOldMapIndex[newIndex - s2] = i + 1
-          patch(prevChild, c2[newIndex], el)
+          patch(prevChild, c2[newIndex], el)  //比对儿子
         }
       }
 
@@ -155,11 +163,15 @@ function baseCreateRenderer(options) {
 
       let j = increasingIndexSequence.length - 1
 
+
+      //倒叙插入元素
       for (let i = toBePatched - 1; i >= 0; i--) {
-        const nextIndex = s2 + i    // [edch]  先找到h的索引
-        const nextChild = c2[nextIndex]   // 找到h
+        const nextIndex = s2 + i    // [edch]  先找到h的索引,即数组中的最后一项
+        const nextChild = c2[nextIndex]   // 找到h  对应h节点
+        //找到h的下一个元素,如果下一个元素小于数组长度则就是参照物,如果大于或等于就是null
         let anchor = nextIndex + 1 < c2.length ? c2[nextIndex + 1].el : null    //找到当前元素的下一个元素
-        if (newIndexToOldMapIndex[i] == 0) {  //这个是一个新元素  直接创建插入到当前元素的下一个即可
+        //如果是0,则表示数组中这个元素在老儿子中没有该元素,这个是一个新元素  直接创建插入到当前元素的下一个即可
+        if (newIndexToOldMapIndex[i] == 0) {
           patch(null, nextChild, el, anchor)
         } else {
           //根据参照物 依次将节点直接移动过去 =>  所有节点都要移动(但是有些节点可以不动)
@@ -240,7 +252,7 @@ function baseCreateRenderer(options) {
           //移除老的文本
           hostSetElementText(el, '')
         }
-        if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {  //新的是数组
           //把新的元素进行挂载,并生成新的节点塞进去
           for (let i = 0; i < c2.length; i++) {
             patch(null, c2[i], el)
@@ -252,13 +264,14 @@ function baseCreateRenderer(options) {
   }
 
   const patchElement = (n1, n2, container) => {
-    //如果n1和n2的类型一样
+    //如果n1和n2的类型一样,需要服用老节点,需要改元素的属性
     let el = (n2.el = n1.el)
-    const oldProps = n1.props || {}
-    const newProps = n2.props || {}
-    patchProps(oldProps, newProps, el)  //比对前后属性的元素差异
-
-    patchChildren(n1, n2, el)
+    const oldProps = n1.props || {} //拿到老节点上的属性
+    const newProps = n2.props || {} //拿到新节点上的属性
+    //1、比对元素上的属性
+    patchProps(oldProps, newProps, el)  //比对新老节点上属性的元素差异,根据新老节点属性去更新el元素
+    //2、比对该元素的儿子的差异
+    patchChildren(n1, n2, el) //
 
   }
 
@@ -321,14 +334,16 @@ function baseCreateRenderer(options) {
   }
 
   const isSameVnodeType = (n1, n2) => {
+    //首先判断两个虚拟节点的type是否一样,然后再看两个节点的key值是否一样
     return n1.type == n2.type && n1.key === n2.key
   }
 
   const patch = (n1, n2, container, anchor = null) => {
     let { shapeFlag } = n2
-
+    
     //先判断是否有上一次节点,再判断上次节点和本次节点是否是相同
     if (n1 && !isSameVnodeType(n1, n2)) {
+      //如果不是相同节点类型则直接替换即可
       //删除老节点 老节点的虚拟节点上对应着真实节点
       hostRemove(n1.el)
       n1 = null
